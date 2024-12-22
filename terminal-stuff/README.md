@@ -1,4 +1,4 @@
-# This directory includes everything I make in the linux terminal.
+# This directory includes everything I make in the Linux Terminal.
 -------------------------------------------------------------------------------------------
 ## kernel.sh - Screensaver for Terminal that simulates a kernel compilation.
 
