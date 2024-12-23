@@ -1,0 +1,8 @@
+Installing Gentoo on Pentium N4200 without Binaries.
+  - Last install time = 3 hours, 15 minutes. (openrc)
+==================================================================
+`systemd install was found to be faster, a bit quirky afterwards`
+
+Install Method : Minimal
+Init Choice : OpenRC
+Time: 
