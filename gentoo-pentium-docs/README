@@ -1,8 +1,143 @@
-Installing Gentoo on Pentium N4200 without Binaries.
-  - Last install time = 3 hours, 15 minutes. (openrc)
-==================================================================
-`systemd install was found to be faster, a bit quirky afterwards`
 
+
+Installing Gentoo on Pentium N4200 without Binaries.
+I have installed Gentoo for about, a lot I can't remember the count.
+I'm making this guide for myself, but feel free to read some stuff.
+  - Last install time = 3 hours, 15 minutes. (openrc)
+
+====================
 Install Method : Minimal
 Init Choice : OpenRC
-Time: 
+Duration: 
+====================
+
+0.1 - Network
+Using `wpa_supplicant`
+Edit "/etc/wpa_supplicant/wpa_supplicant.conf" # using nano
+Add :
+
+" ctrl_interface=/run/wpa_supplicant
+update_config=1 "
+
+(Without quotes)
+
+Initialize
+"wpa_supplicant -B -i interface -c /etc/wpa_supplicant/wpa_supplicant.conf"
+
+Adding network
+  - wpa_cli
+  - scan
+  - scan_results
+  - add network
+  - set_network 0 ssid "MYSSID"
+  - set_network 0 psk "passphrase"
+  - enable_network 0
+  - save_config
+  - quit
+
+Test Network
+  ping -c 5 1.1.1.1
+
+0.2 - Disk
+Using fdisk
+
+Deleting partitions, making new ones, assign, format and mount
+
+  Needs:
+    efi  # /boot/efi, 1G or 1024MB
+    swap # RAM * 2
+    root # / , whole disk
+    
+  - fdisk /dev/sdX  # X = equivalent of the main disk partition
+  - p  # list partitions
+  - d  # delete partitions
+  - g  # create disk in gpt partition
+  - n  # create new partition
+  - t  # partition type
+    (1 for efi system, 19 for swap)
+  - w  # write changes, formats disk with new partition
+
+Format efi partition 
+  - mkfs.fat -F 32 /dev/sdX1 
+
+Activate swap partition
+  - mkswap /dev/sdX2
+  - swapon /dev/sdX2
+
+Assign filesystem on root partition
+  - mkfs.ext4 /dev/sdX3  # could also use xfs, btrfs, etc.
+
+Mount the root partition
+  - mkdir --parents /mnt/gentoo
+  - mount /dev/sdX3 /mnt/gentoo
+
+Create efi directory on `/mnt/gentoo`
+  - mkdir --parents /mnt/gentoo/efi
+
+0.3 - Stage File, Configuring Compile Options
+
+Change directory
+  - cd /mnt/gentoo
+Check date with "date"
+  - date MMDDhhmmYYYY   # in 24h format, only change if date is not accurate
+
+Grab stage file 
+  - links https://www.gentoo.org/downloads/mirrors/  # stage3 openrc desktop profile
+
+Extract stage file
+  - tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo
+
+Compile Options
+  - nano /etc/portage/make.conf
+    COMMON_FLAGS="-march=native -02 -pipe"
+    RUSTFLAGS="${RUSTFLAGS} -C target-cpu=native"
+    MAKEOPTS="-jX -lY"  # ram & threads
+    PORTAGE_NICENESS="19"
+    PORTAGE_IONICE_COMMAND="ionice -c 3 -p \${PID}"
+
+(Line 132 - Upon checking `make.conf` again, settings that were set from Line 92 - 96 disappeared, had to re-add again)
+
+0.4 - Chroot, Install Base System, Configure Portage
+Copy DNS
+  - cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
+
+Chroot
+  - arch-chroot /mnt/gentoo  # if using gentoo's install media
+  - source /etc/profile
+  - export PS1="(chroot) ${PS1}"
+
+Prepare Bootloader
+  - mount /dev/sdX1 /efi
+
+Fetch snapshot from Gentoo Mirrors
+  - emerge-webrsync
+
+Select Mirrors
+  - emerge -av1 app-portage/mirrorselect  # --ask --verbose --oneshot
+  - mirrorselect -i -o >> /etc/portage/make.conf
+
+Update Gentoo ebuild repository
+  - emerge --sync
+
+Add CPU_FLAGS_*
+  - emerge -av1 app-portage/cpuid2cpuflags
+  - echo "*/* $(cpuid2cpuflags)" > /etc/portage/package.use/00cpu-flags  # "cpuid2cpuflags" to check
+
+Add VIDEO_CARDS
+  - nano /etc/portage/package.use/00video_cards
+  - */* VIDEO_CARDS: intel
+
+Add ACCEPT_LICENSE 
+  - portageq envvar ACCEPT_LICENSE
+  - nano /etc/portage/make.conf
+    ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
+
+Add packages with license
+  - mkdir /etc/portage/package.license
+  - nano /etc/portage/package.license/kernel
+    app-arch/unrar unRAR
+    sys-kernel/linux-firmware linux-fw-redistributable
+    sys-firmware/intel-microcode intel-ucode
+
+Updating @world
+  - emerge -avuDN @world  # emerge --ask --verbose --update --deep --changed-use @world
