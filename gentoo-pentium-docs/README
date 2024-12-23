@@ -11,8 +11,9 @@
                                     ▐▌                                                                                                                       
 
 ====================
-Status: Incomplete
+Status: Complete
 ====================
+
 Installing Gentoo on Pentium N4200 without Binaries.
 I have installed Gentoo for about, a lot I can't remember the count.
 I'm making this guide for myself, but feel free to read some stuff.
@@ -108,7 +109,8 @@ Compile Options
     PORTAGE_NICENESS="19"
     PORTAGE_IONICE_COMMAND="ionice -c 3 -p \${PID}"
 
-(Line 132 - Upon checking `make.conf` again, settings that were set from Line 92 - 96 disappeared, had to re-add again)
+(Line 147 - Upon checking `make.conf` again
+  settings that were set from Line 106 - 110 disappeared, had to re-add again)
 
 0.4 - Chroot, Install Base System, Configure Portage
 Copy DNS
@@ -154,3 +156,159 @@ Add packages with license
 
 Updating @world
   - emerge -avuDN @world  # emerge --ask --verbose --update --deep --changed-use @world
+
+Set Timezone
+  - ln -sf ../usr/share/zoneinfo/(continent)/(country capital) /etc/localtime  # e.g Asia/Manila
+
+Setup Locale
+  - nano /etc/locale.gen
+    en_US.UTF-8 UTF-8 
+  - locale-gen
+
+Select Locale
+  - eselect locale list
+  - eselect locale set X  # Line 164
+
+Reload Environment
+  - env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
+
+0.5 - Configuring Kernel  
+
+Install Linux Firmware
+  - emerge --ask sys-kernel/linux-firmware  # or emerge -av
+
+Install SOF (Sound Open Firmware)
+  - emerge --ask sys-firmware/sof-firmware 
+
+Install Intel Microcode
+  - emerge --ask sys-firmware/intel-microcode
+
+Add GRUB Bootloader
+  - nano /etc/portage/package.use/installkernel
+    sys-kernel/installkernel grub
+
+Install "installkernel"
+  - emerge --ask sys-kernel/installkernel
+
+Add Initramsfs
+  - nano /etc/portage/package.use/installkernel
+    sys-kernel/installkernel dracut  # Refer to Line 186 - add this below, not on the same line
+
+  - emerge --ask sys-kernel/installkernel
+
+Installing Kernel
+  - emerge --ask sys-kernel/gentoo-kernel-bin  # or without `bin`
+
+Clean up
+  - emerge --depclean  # can add `--pretend` before `--depclean`
+
+Post-Install
+  - nano /etc/portage/make.conf
+    USE="dist-kernel"
+
+0.6 - System Configuration
+
+Editing fstab
+  - nano /etc/fstab
+
+  =============================================
+  /dev/sdX1  /efi  vfat  umask=0077        0  2  
+  /dev/sdX2  none  swap  sw                0  0
+  /dev/sdX3  /     ext4  defaults,noatime  0  1
+  =============================================
+
+  # generally better to use UUID from `blkid`
+
+0.7 - Networking & System Information
+
+Hostname
+  - echo (hostname) > /etc/hostname  # could be any
+
+Host File
+  - nano /etc/hosts
+    127.0.0.1     hostname.homenetwork hostname localhost
+
+Set root password
+  - passwd  # will not echo
+
+0.8 - System Tools
+
+  # Line 242 to Line 252 are optional, but better if installed.
+
+System Logger
+  - emerge --ask app-admin/sysklogd
+  - rc-update add sysklogd default
+
+Cron Daemon
+  - emerge --ask sys-process/cronie
+  - rc-update add cronie default
+
+File Indexing
+  - emerge --ask sys-apps/mlocate
+
+Shell Completion
+  - emerge --ask app-shells/bash-completion
+
+Time Synchronization
+  - emerge --ask net-misc/chrony
+  - rc-update add chronyd default
+
+0.9 - Networking Tools
+
+Install Wireless Networking Tools
+  - emerge --ask net-wireless/iw net-wireless/wpa_supplicant
+
+Add Network Manager
+  - nano /etc/portage/make.conf
+    USE="${USE} networkmanager"
+
+Update System after adding a USE flag
+  - emerge --ask --changed-use --deep @world
+
+Install Network Manager
+  - emerge --ask net-misc/networkmanager
+      # could start from Line 262,
+          then go back to Line 259 including `networkmanager`
+
+1.0 - GRUB Bootloader
+
+Install
+  - emerge --ask --verbose sys-boot/grub
+
+Add an EFI support
+  - echo 'GRUB_PLATFORMS="efi-64"' >> /etc/portage/make.conf
+
+Rebuild & Install
+  - emerge --ask sys-boot/grub
+
+Install GRUB on system
+  - grub-install --efi-directory=/efi
+
+Let GRUB build a config file
+  - grub-mkconfig -o /boot/grub/grub.cfg
+
+=====
+Final
+
+Exit chroot
+  - exit
+
+Unmount mounted partitions and reboot
+  - cd
+  - umount -l /mnt/gentoo/dev{/shm,/pts,}
+  - umount -R /mnt/gentoo
+  - reboot
+
+            # REFERENCES #
+https://wiki.gentoo.org/wiki/Handbook:AMD64
+https://wiki.gentoo.org/wiki/Portage_niceness
+https://wiki.gentoo.org/wiki/NetworkManager
+https://wiki.archlinux.org/title/Wpa_supplicant
+
+=========================================================================
+This was such a fun experience to do, If you want to try out Gentoo, 
+prepare a lot of time and patience as this takes really long to install.
+I highly recommend the handbook, huge thanks to the Gentoo Community
+for making such an awesome documentation.
+  - Thunderlake.
+==========================================================================
