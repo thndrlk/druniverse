@@ -27,7 +27,7 @@
 ### RAM
   - 4096 MB (4GB)
 ### Distribution Installed
-  - Debian Linux, 12.7 - Bookworm (Stable) w/ BTRFS & Snapper
+  - Gentoo Linux w/ EXT4
 ### Tiling Window Manager
-  - SwayWM v1.7
+  - (undecided)
 ----------------------------------------------------------------
