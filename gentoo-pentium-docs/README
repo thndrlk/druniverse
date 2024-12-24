@@ -1,68 +1,42 @@
-                   ▗▄▄▖▗▞▀▚▖▄▄▄▄     ■   ▄▄▄   ▄▄▄  
-                  ▐▌   ▐▛▀▀▘█   █ ▗▄▟▙▄▖█   █ █   █ 
-                  ▐▌▝▜▌▝▚▄▄▖█   █   ▐▌  ▀▄▄▄▀ ▀▄▄▄▀ 
-                  ▝▚▄▞▘             ▐▌              
-                                    ▐▌              
-                                
-                  ▗▄▄▖ ▗▞▀▚▖▄▄▄▄     ■  ▄ █  ▐▌▄▄▄▄  
-                  ▐▌ ▐▌▐▛▀▀▘█   █ ▗▄▟▙▄▖▄ ▀▄▄▞▘█ █ █ 
-                  ▐▛▀▘ ▝▚▄▄▖█   █   ▐▌  █      █   █ 
-                  ▐▌                ▐▌  █            
-                                    ▐▌                                                                                                                       
 
 =================================
-Status: Complete, needs revision
+Status: Complete
 =================================
 
 Installing Gentoo on Pentium N4200 without Binaries.
-I have installed Gentoo for about, a lot I can't remember the count.
-I'm making this guide for myself, but feel free to read some stuff.
-  - Last install time = 3 hours, 15 minutes. (openrc)
 
-====================
+  I'm making this guide for myself, 
+but feel free to read it.
+
+==============================
 Install Method : Minimal
 Init Choice : OpenRC
-Duration: 
-====================
+Duration: 4 hours, 58 minutes
+==============================
 
 0.1 - Network
+
 Using `wpa_supplicant`
-Edit "/etc/wpa_supplicant/wpa_supplicant.conf" # using nano
-Add :
-
-" ctrl_interface=/run/wpa_supplicant
-update_config=1 "
-
-(Without quotes)
-
-Initialize
-"wpa_supplicant -B -i interface -c /etc/wpa_supplicant/wpa_supplicant.conf"
-
-Adding network
-  - wpa_cli
-  - scan
-  - scan_results
-  - add network
-  - set_network 0 ssid "MYSSID"
-  - set_network 0 psk "passphrase"
-  - enable_network 0
-  - save_config
-  - quit
+  - wpa_supplicant -B -i interface -c <(wpa_passphrase MYSSID PASSWORD)
 
 Test Network
   ping -c 5 1.1.1.1
 
 0.2 - Disk
+
 Using fdisk
 
-Deleting partitions, making new ones, assign, format and mount
+Deleting partitions, 
+  making new ones, assign, 
+    format and mount
 
   Needs:
     efi  # /boot/efi, 1G or 1024MB
     swap # RAM * 2
     root # / , whole disk
     
-  - fdisk /dev/sdX  # X = equivalent of the main disk partition
+  - fdisk /dev/sdX  
+        # X = equivalent of the main disk partition
   - p  # list partitions
   - d  # delete partitions
   - g  # create disk in gpt partition
@@ -79,7 +53,8 @@ Activate swap partition
   - swapon /dev/sdX2
 
 Assign filesystem on root partition
-  - mkfs.ext4 /dev/sdX3  # could also use xfs, btrfs, etc.
+  - mkfs.ext4 /dev/sdX3  
+      # could also use xfs, btrfs, etc.
 
 Mount the root partition
   - mkdir --parents /mnt/gentoo
@@ -92,11 +67,14 @@ Create efi directory on `/mnt/gentoo`
 
 Change directory
   - cd /mnt/gentoo
+
 Check date with "date"
-  - date MMDDhhmmYYYY   # in 24h format, only change if date is not accurate
+  - date MMDDhhmmYYYY   
+      # in 24h format, only change if date is not accurate
 
 Grab stage file 
-  - links https://www.gentoo.org/downloads/mirrors/  # stage3 openrc desktop profile
+  - links https://www.gentoo.org/downloads/mirrors/  
+      # stage3 openrc desktop profile
 
 Extract stage file
   - tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo
@@ -104,22 +82,30 @@ Extract stage file
 Compile Options
   - nano /etc/portage/make.conf
     COMMON_FLAGS="-march=native -02 -pipe"
-    RUSTFLAGS="${RUSTFLAGS} -C target-cpu=native"
+    RUSTFLAGS="-C target-cpu=native"
     MAKEOPTS="-jX -lY"  # ram & threads
     PORTAGE_NICENESS="19"
     PORTAGE_IONICE_COMMAND="ionice -c 3 -p \${PID}"
 
-(Line 147 - Upon checking `make.conf` again
-  settings that were set from Line 106 - 110 disappeared, had to re-add again)
-
 0.4 - Chroot, Install Base System, Configure Portage
+
 Copy DNS
   - cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
 
+Generate fstab before chrooting
+  - genfstab /mnt/gentoo > /mnt/gentoo/etc/fstab
+
 Chroot
-  - arch-chroot /mnt/gentoo  # if using gentoo's install media
+  - mount --types proc /proc /mnt/gentoo/proc
+  - mount --rbind /sys /mnt/gentoo/sys
+  - mount --make-rslave /mnt/gentoo/sys
+  - mount --rbind /dev /mnt/gentoo/dev
+  - mount --make-rslave /mnt/gentoo/dev
+  - mount --bind /run /mnt/gentoo/run
+  - mount --make-slave /mnt/gentoo/run
+  - chroot /mnt/gentoo /bin/bash
   - source /etc/profile
-  - export PS1="(chroot) ${PS1}"
+  - export PS1="(chroot) ${PS1}"  
 
 Prepare Bootloader
   - mount /dev/sdX1 /efi
@@ -131,34 +117,29 @@ Select Mirrors
   - emerge -av1 app-portage/mirrorselect  # --ask --verbose --oneshot
   - mirrorselect -i -o >> /etc/portage/make.conf
 
-Update Gentoo ebuild repository
-  - emerge --sync
-
 Add CPU_FLAGS_*
   - emerge -av1 app-portage/cpuid2cpuflags
-  - echo "*/* $(cpuid2cpuflags)" > /etc/portage/package.use/00cpu-flags  # "cpuid2cpuflags" to check
+  - echo "*/* $(cpuid2cpuflags)" > /etc/portage/package.use/00cpu-flags
 
 Add VIDEO_CARDS
-  - nano /etc/portage/package.use/00video_cards
-  - */* VIDEO_CARDS: intel
-
-Add ACCEPT_LICENSE 
-  - portageq envvar ACCEPT_LICENSE
   - nano /etc/portage/make.conf
-    ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"
+  - VIDEO_CARDS="intel"
+
+  # Upon checking, settings used from Line 83 
+    was removed, had to re-add again.
 
 Add packages with license
   - mkdir /etc/portage/package.license
-  - nano /etc/portage/package.license/kernel
-    app-arch/unrar unRAR
+  - nano /etc/portage/package.license/kernel  
     sys-kernel/linux-firmware linux-fw-redistributable
     sys-firmware/intel-microcode intel-ucode
 
-Updating @world
+Updating `@world`
   - emerge -avuDN @world  # emerge --ask --verbose --update --deep --changed-use @world
 
 Set Timezone
-  - ln -sf ../usr/share/zoneinfo/(continent)/(country capital) /etc/localtime  # e.g Asia/Manila
+  - ln -sf ../usr/share/zoneinfo/Asia/Manila /etc/localtime  
+        # Continent & Country Capital
 
 Setup Locale
   - nano /etc/locale.gen
@@ -167,7 +148,8 @@ Setup Locale
 
 Select Locale
   - eselect locale list
-  - eselect locale set X  # Line 164
+  - eselect locale set X 
+    # Line 143
 
 Reload Environment
   - env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
@@ -183,43 +165,27 @@ Install SOF (Sound Open Firmware)
 Install Intel Microcode
   - emerge --ask sys-firmware/intel-microcode
 
-Add GRUB Bootloader
+Add GRUB Bootloader, Initramfs
   - nano /etc/portage/package.use/installkernel
-    sys-kernel/installkernel grub
+    sys-kernel/installkernel dracut grub
+
+Add EFI support
+  - echo 'GRUB_PLATFORMS="efi-64"' >> /etc/portage/make.conf
 
 Install "installkernel"
   - emerge --ask sys-kernel/installkernel
 
-Add Initramsfs
-  - nano /etc/portage/package.use/installkernel
-    sys-kernel/installkernel dracut  # Refer to Line 186 - add this below, not on the same line
-
-  - emerge --ask sys-kernel/installkernel
-
 Installing Kernel
-  - emerge --ask sys-kernel/gentoo-kernel-bin  # or without `bin`
+  - emerge --ask sys-kernel/gentoo-kernel-bin
 
 Clean up
-  - emerge --depclean  # can add `--pretend` before `--depclean`
+  - emerge --depclean  # could add `--pretend` before `--depclean`
 
 Post-Install
   - nano /etc/portage/make.conf
     USE="dist-kernel"
 
-0.6 - System Configuration
-
-Editing fstab
-  - nano /etc/fstab
-
-  =============================================
-  /dev/sdX1  /efi  vfat  umask=0077        0  2  
-  /dev/sdX2  none  swap  sw                0  0
-  /dev/sdX3  /     ext4  defaults,noatime  0  1
-  =============================================
-
-  # generally better to use UUID from `blkid`
-
-0.7 - Networking & System Information
+0.6 - Networking & System Information
 
 Hostname
   - echo (hostname) > /etc/hostname  # could be any
@@ -233,53 +199,36 @@ Set root password
 
 0.8 - System Tools
 
-  # Line 242 to Line 252 are optional, but better if installed.
+    # Optional, but better if installed.
 
-System Logger
-  - emerge --ask app-admin/sysklogd
+Install:
+  System Logger
+  Cron Daemon
+  File Indexing
+  Shell Completion
+  Time Synchronization
+
+  - emerge --ask --verbose app-admin/sysklogd sys-process/cronie 
+sys-apps/mlocate app-shells/bash-completion net-misc/chrony
+
+Enable services
   - rc-update add sysklogd default
-
-Cron Daemon
-  - emerge --ask sys-process/cronie
   - rc-update add cronie default
-
-File Indexing
-  - emerge --ask sys-apps/mlocate
-
-Shell Completion
-  - emerge --ask app-shells/bash-completion
-
-Time Synchronization
-  - emerge --ask net-misc/chrony
   - rc-update add chronyd default
 
 0.9 - Networking Tools
 
-Install Wireless Networking Tools
-  - emerge --ask net-wireless/iw net-wireless/wpa_supplicant
-
-Add Network Manager
+Add Network Manager and "tkip" USE flag
   - nano /etc/portage/make.conf
-    USE="${USE} networkmanager"
+    USE="${USE} networkmanager tkip"
 
 Update System after adding a USE flag
   - emerge --ask --changed-use --deep @world
 
-Install Network Manager
-  - emerge --ask net-misc/networkmanager
-      # could start from Line 262,
-          then go back to Line 259 including `networkmanager`
+Install Network Manager, `wpa_supplicant`
+  - emerge --ask net-misc/networkmanager net-wireless/wpa_supplicant
 
 1.0 - GRUB Bootloader
-
-Install
-  - emerge --ask --verbose sys-boot/grub
-
-Add an EFI support
-  - echo 'GRUB_PLATFORMS="efi-64"' >> /etc/portage/make.conf
-
-Rebuild & Install
-  - emerge --ask sys-boot/grub
 
 Install GRUB on system
   - grub-install --efi-directory=/efi
@@ -289,6 +238,9 @@ Let GRUB build a config file
 
 =====
 Final
+
+Double-check fstab
+  - cat /etc/fstab
 
 Exit chroot
   - exit
@@ -306,7 +258,9 @@ https://wiki.gentoo.org/wiki/NetworkManager
 https://wiki.archlinux.org/title/Wpa_supplicant
 
 =========================================================================
-This was such a fun experience to do, If you want to try out Gentoo, 
+Thanks to @hpsaucii from Debian Community in Discord for helping me on this.
+
+  This was such a fun experience to do, If you want to try out Gentoo, 
 prepare a lot of time and patience as this takes really long to install.
 I highly recommend the handbook, huge thanks to the Gentoo Community
 for making such an awesome documentation.
