@@ -14,10 +14,8 @@
   - NVIDIA GeForce GT 720M
 ### RAM
   - 12288 MB (12GB)
-### Distribution Installed
-  - Debian Linux, 12.7 - Bookworm (Stable) w/ BTRFS & Snapper
-### Desktop Environment
-  - GNOME 43.9
+### Operating System Installed
+  - Windows 10 IoT LTSC
 ----------------------------------------------------------------
 ## ASUS X441NA
 ### CPU
@@ -26,8 +24,8 @@
   - Intel HD Graphics 505 (Apollo Lake)
 ### RAM
   - 4096 MB (4GB)
-### Distribution Installed
-  - Gentoo Linux w/ EXT4
+### Operating System Installed
+  - Gentoo Linux
 ### Tiling Window Manager
   - (undecided)
 ----------------------------------------------------------------
